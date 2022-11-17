@@ -30,9 +30,15 @@ def writefileparallel(u, v, w, dx, dy, dz, fileformat):
 def writefile(filename, velcomponent, dx, dy, dz, velarray, fileformat):
   t0 = time.time()  
 
-  nx = len(velarray[:,0,0])
-  ny = len(velarray[0,:,0])
-  nz = len(velarray[0,0,:])  
+  if (fileformat == FileFormats.XYZUVW):
+    vel_component = velarray[0]
+    nx = len(vel_component[:,0,0])
+    ny = len(vel_component[0,:,0])
+    nz = len(vel_component[0,0,:])  
+  else:
+    nx = len(velarray[:,0,0])
+    ny = len(velarray[0,:,0])
+    nz = len(velarray[0,0,:])  
   
   f = open(filename , 'w')
   zo=[0,0,0]
@@ -56,7 +62,20 @@ def writefile(filename, velcomponent, dx, dy, dz, velarray, fileformat):
           y = ylo + j*dy
           z = zlo + k*dz
           u = velarray[i,j,k]              
-          f.write('%.16f %.16f %.16f %.16f \n' % (x,y,z,u))        
+          f.write('%.16f %.16f %.16f %.16f \n' % (x,y,z,u))
+  elif (fileformat == FileFormats.XYZUVW):    
+    f.write('%s \n' % 'XYZUVW')
+    u,v,w = velarray
+    xlo = 0.0
+    ylo = 0.0
+    zlo = 0.0
+    for k in range(0,nz):
+      for j in range(0,ny):
+        for i in range(0,nx):
+          x = xlo + i*dx
+          y = ylo + j*dy
+          z = zlo + k*dz
+          f.write('%.16f %.16f %.16f %.16f %.16f %.16f \n' % (x,y,z,u[i,j,k],v[i,j,k],w[i,j,k]))
   elif (fileformat == FileFormats.IJK):
     f.write('%s \n' % 'IJK')    
     for k in range(0,nz):

@@ -130,7 +130,7 @@ enableIO = False  # enable writing to file
 io = args.output
 if io:
 	enableIO = io
-fileformat = FileFormats.FLAT  # Specify the file format supported formats are: FLAT, IJK, XYZ
+fileformat = FileFormats.XYZUVW  # Specify the file format supported formats are: FLAT, IJK, XYZ
 
 # save the velocity field as a matlab matrix (.mat)
 savemat = False
@@ -179,12 +179,18 @@ elapsed_time = t1 - t0
 print('it took me ', elapsed_time, 's to generate the isotropic turbulence.')
 
 if enableIO:
-    if use_threads:
-        isoio.writefileparallel(u, v, w, dx, dy, dz, fileformat)
-    else:
-        isoio.writefile('u_' + fileappend + '.txt', 'x', dx, dy, dz, u, fileformat)
-        isoio.writefile('v_' + fileappend + '.txt', 'y', dx, dy, dz, v, fileformat)
-        isoio.writefile('w_' + fileappend + '.txt', 'z', dx, dy, dz, w, fileformat)
+	if use_threads:
+		isoio.writefileparallel(u, v, w, dx, dy, dz, fileformat)
+	else:
+		if(fileformat == FileFormats.XYZUVW):
+			dx = lx / (nx-1)
+			dy = ly / (ny-1)
+			dz = lz / (nz-1)
+			isoio.writefile('vel_' + fileappend + '.txt', '', dx, dy, dz, [u,v,w], fileformat)
+		else:
+			isoio.writefile('u_' + fileappend + '.txt', 'x', dx, dy, dz, u, fileformat)
+			isoio.writefile('v_' + fileappend + '.txt', 'y', dx, dy, dz, v, fileformat)
+			isoio.writefile('w_' + fileappend + '.txt', 'z', dx, dy, dz, w, fileformat)
 
 if savemat:
     data = {}  # CREATE empty dictionary

@@ -9,3 +9,4 @@ class FileFormats():
   FLAT=1
   XYZ=2
   IJK=3
+  XYZUVW=4
