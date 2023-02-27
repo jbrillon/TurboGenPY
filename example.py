@@ -43,7 +43,7 @@ import argparse
 __author__ = 'Tony Saad'
 parser = argparse.ArgumentParser(description='This is the Utah Turbulence Generator.')
 parser.add_argument('-l' , '--length', help='Domain size, lx ly lz',required=False, nargs='+', type=float)
-parser.add_argument('-n' , '--res'  , help='Grid resolution, nx ny nz',required=True, nargs='+', type=int)
+parser.add_argument('-n' , '--res'  , help='Grid resolution, nx ny nz',required=False, nargs='+', type=int)
 parser.add_argument('-m' , '--modes' , help='Number of modes', required=False,type=int)
 parser.add_argument('-gpu', '--cuda', help='Use a GPU if availalbe', required = False, action='store_true')
 parser.add_argument('-mp' , '--multiprocessor',help='Use the multiprocessing package', required = False,nargs='+', type=int)
@@ -51,28 +51,38 @@ parser.add_argument('-o'  , '--output', help='Write data to disk', required = Fa
 parser.add_argument('-spec', '--spectrum', help='Select spectrum. Defaults to cbc. Other options include: vkp, kcm, and pq.', required = False, type=str)
 args = parser.parse_args()
 
+# finite-element parameters
+number_of_elements_per_direction = 4
+poly_degree = 5
+
+number_of_unique_points_per_direction = number_of_elements_per_direction*(poly_degree+1) - (number_of_elements_per_direction-1)
+
+nx = 1*number_of_unique_points_per_direction
+ny = 1*number_of_unique_points_per_direction
+nz = 1*number_of_unique_points_per_direction
+
 # parse grid resolution (nx, ny, nz). defaults to 32^3
-nx = 32
-ny = 32
-nz = 32
-N = args.res
-if len(N) == 1:
-	nx = ny = nz = N[0]
-elif len(N) == 2:
-	print('Error! You must specify either all three grid resolutions or just one.')
-	exit()
-else:
-	nx = N[0]
-	ny = N[1]
-	nz = N[2]
+# nx = 32
+# ny = 32
+# nz = 32
+# N = args.res
+# if len(N) == 1:
+# 	nx = ny = nz = N[0]
+# elif len(N) == 2:
+# 	print('Error! You must specify either all three grid resolutions or just one.')
+# 	exit()
+# else:
+# 	nx = N[0]
+# 	ny = N[1]
+# 	nz = N[2]
 
 # Default values for domain size in the x, y, and z directions. This value is typically
 # based on the largest length scale that your data has. For the cbc data,
 # the largest length scale corresponds to a wave number of 15, hence, the
 # domain size is L = 2pi/15.
-lx = 9 * 2.0 * pi / 100.0
-ly = 9 * 2.0 * pi / 100.0
-lz = 9 * 2.0 * pi / 100.0
+lx = 9 * 2.0 * pi / 100.0 # [m]
+ly = 9 * 2.0 * pi / 100.0 # [m]
+lz = 9 * 2.0 * pi / 100.0 # [m]
 # parse domain length, lx, ly, and lz
 L = args.length
 if L:
@@ -87,7 +97,7 @@ if L:
 		lz = L[2]
 
 # parse number of modes
-nmodes = 100
+nmodes = 5000 # suggested in TurboGenPY paper
 m = args.modes
 if m:
 	nmodes = int(m)
@@ -130,7 +140,7 @@ enableIO = False  # enable writing to file
 io = args.output
 if io:
 	enableIO = io
-fileformat = FileFormats.XYZUVW  # Specify the file format supported formats are: FLAT, IJK, XYZ
+# fileformat = FileFormats.XYZUVW  # Specify the file format supported formats are: FLAT, IJK, XYZ
 
 # save the velocity field as a matlab matrix (.mat)
 savemat = False
@@ -142,8 +152,14 @@ computeMean = False
 checkdivergence = False
 
 # enter the smallest wavenumber represented by this spectrum
-wn1 = min(2.0*pi/lx, min(2.0*pi/ly, 2.0*pi/lz))
-# wn1 = 15  # determined here from cbc spectrum properties
+if(inputspec=='cbc_spectrum'):
+	wn1 = 15  # determined here from cbc spectrum properties (suggested in TurboGenPY paper)
+	# NOTE: wn1 should be 15 [1/m] since the data is read in using metre units
+	# this 15 [1/m] minimum wavenumber comes from table 3 of comte's original (CBC) paper
+	# should look at the actual spectra file when choosing this
+else:
+	wn1 = min(2.0*pi/lx, min(2.0*pi/ly, 2.0*pi/lz))
+
 
 # summarize user input
 print('-----------------------------------')
@@ -155,7 +171,6 @@ print('Using cuda:', use_cuda)
 print('Using CPU threads:', use_threads)
 if use_threads:
 	print('\t patch layout:', patches)
-
 # ------------------------------------------------------------------------------
 # END USER INPUT
 # ------------------------------------------------------------------------------
@@ -163,9 +178,12 @@ if use_threads:
 # input number of cells (cell centered control volumes). This will
 # determine the maximum wave number that can be represented on this grid.
 # see wnn below
-dx = lx / nx
-dy = ly / ny
-dz = lz / nz
+# dx = lx / nx
+# dy = ly / ny
+# dz = lz / nz
+dx = lx / (nx-1)
+dy = ly / (ny-1)
+dz = lz / (nz-1)
 
 t0 = time.time()
 if use_threads:
@@ -173,7 +191,10 @@ if use_threads:
 elif use_cuda:
     u, v, w = cudaturbo.generate_isotropic_turbulence(lx, ly, lz, nx, ny, nz, nmodes, wn1, whichspec)
 else:
-    u, v, w = isoturb.generate_isotropic_turbulence(lx, ly, lz, nx, ny, nz, nmodes, wn1, whichspec)
+    u, v, w = isoturb.generate_isotropic_turbulence(lx, ly, lz, nx, ny, nz, nmodes, wn1, whichspec, 
+    	write_fem_grid_files=True,
+  		number_of_elements_per_direction=number_of_elements_per_direction,
+  		poly_degree=poly_degree)
 t1 = time.time()
 elapsed_time = t1 - t0
 print('it took me ', elapsed_time, 's to generate the isotropic turbulence.')

@@ -34,7 +34,10 @@ import numpy as np
 from numpy import sin, cos, sqrt, ones, zeros, pi, arange
 
 
-def generate_isotropic_turbulence(lx, ly, lz, nx, ny, nz, nmodes, wn1, especf):
+def generate_isotropic_turbulence(lx, ly, lz, nx, ny, nz, nmodes, wn1, especf, 
+  write_fem_grid_files=False,
+  number_of_elements_per_direction=4,
+  poly_degree=5):
     """
     Given an energy spectrum, this function computes a discrete, staggered, three
     dimensional velocity field in a box whose energy spectrum corresponds to the input energy
@@ -62,10 +65,15 @@ def generate_isotropic_turbulence(lx, ly, lz, nx, ny, nz, nmodes, wn1, especf):
       A callback function representing the energy spectrum.
     """
 
-    # generate cell centered x-grid
-    dx = lx / nx
-    dy = ly / ny
-    dz = lz / nz
+    if(write_fem_grid_files==True):
+      dx = lx / (nx-1)
+      dy = ly / (ny-1)
+      dz = lz / (nz-1)
+    else:
+      # generate cell centered x-grid
+      dx = lx / nx
+      dy = ly / ny
+      dz = lz / nz
 
     # START THE FUN!
 
@@ -82,8 +90,12 @@ def generate_isotropic_turbulence(lx, ly, lz, nx, ny, nz, nmodes, wn1, especf):
     # wavenumber step
     dk = (wnn - wn1) / nmodes
 
-    # wavenumber at cell centers
-    wn = wn1 + 0.5 * dk + arange(0, nmodes) * dk
+    if(write_fem_grid_files==True):
+      # wavenumber as described in TurboGenPY paper (step 4)
+      wn = wn1 + arange(0, nmodes) * dk
+    else:
+      # wavenumber at cell centers
+      wn = wn1 + 0.5 * dk + arange(0, nmodes) * dk
 
     dkn = ones(nmodes) * dk
 
@@ -92,7 +104,7 @@ def generate_isotropic_turbulence(lx, ly, lz, nx, ny, nz, nmodes, wn1, especf):
     ky = sin(theta) * sin(phi) * wn
     kz = cos(theta) * wn
 
-    # create divergence vector
+    # create divergence vector -- pretty sure this comes from eq.(7) without the 2/delta factor at the front
     ktx = np.sin(kx * dx / 2.0) / dx
     kty = np.sin(ky * dy / 2.0) / dy
     ktz = np.sin(kz * dz / 2.0) / dz
@@ -122,12 +134,13 @@ def generate_isotropic_turbulence(lx, ly, lz, nx, ny, nz, nmodes, wn1, especf):
     espec = especf(km)
     espec = espec.clip(0.0)
 
-    # generate turbulence at cell centers
+    
     um = sqrt(espec * dkn)
     u_ = zeros([nx, ny, nz])
     v_ = zeros([nx, ny, nz])
     w_ = zeros([nx, ny, nz])
 
+    # generate turbulence at cell centers
     xc = dx / 2.0 + arange(0, nx) * dx
     yc = dy / 2.0 + arange(0, ny) * dy
     zc = dz / 2.0 + arange(0, nz) * dz
@@ -143,6 +156,48 @@ def generate_isotropic_turbulence(lx, ly, lz, nx, ny, nz, nmodes, wn1, especf):
                 u_[i, j, k] = np.sum(bmx * sxm)
                 v_[i, j, k] = np.sum(bmy * sym)
                 w_[i, j, k] = np.sum(bmz * szm)
+
+    if(write_fem_grid_files==True):
+      # generate files for PHiLiP
+      # IDEA: I could compute the velocity field directly at the GLL nodes instead of having to convert it after
+
+      number_of_points_per_direction = number_of_elements_per_direction*(poly_degree+1)
+      file = open("velocity_flow_field_turbogenpy.txt","w") # for testing
+      # - write total DOFs
+      wstr = "%i\n" % (number_of_points_per_direction*number_of_points_per_direction*number_of_points_per_direction)
+      file.write(wstr)
+
+      nElements_per_direction = 1*number_of_elements_per_direction
+      nQuadPoints_per_element = poly_degree+1
+      x_element_faces = np.linspace(0,lx,nElements_per_direction+1)
+      y_element_faces = np.linspace(0,ly,nElements_per_direction+1)
+      z_element_faces = np.linspace(0,lz,nElements_per_direction+1)
+      
+      i = 0
+      for ez in range(0,nElements_per_direction):
+        for qz in range(0,nQuadPoints_per_element):
+          z_val = z_element_faces[ez] +  np.float64(qz) * dz # z-coordinate
+          for ey in range(0,nElements_per_direction):
+            for qy in range(0,nQuadPoints_per_element):
+              y_val = y_element_faces[ey] +  np.float64(qy) * dy # y-coordinate
+              for ex in range(0,nElements_per_direction):
+                for qx in range(0,nQuadPoints_per_element):
+                  x_val = x_element_faces[ex] +  np.float64(qx) * dx # x-coordinate
+
+                  # for every grid point (i,j,k) do the fourier summation
+                  arg = kx * x_val + ky * y_val + kz * z_val - psi
+                  bmx = 2.0 * um * cos(arg - kx * dx / 2.0)
+                  bmy = 2.0 * um * cos(arg - ky * dy / 2.0)
+                  bmz = 2.0 * um * cos(arg - kz * dz / 2.0)
+                  u_val = np.sum(bmx * sxm)
+                  v_val = np.sum(bmy * sym)
+                  w_val = np.sum(bmz * szm)
+
+                  wstr = " %18.16e %18.16e %18.16e %18.16e %18.16e %18.16e\n" % (x_val, y_val, z_val, u_val, v_val, w_val)
+                  file.write(wstr)
+                  i += 1
+
+      file.close()
 
     print('done generating turbulence.')
     return u_, v_, w_

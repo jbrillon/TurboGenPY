@@ -24,8 +24,8 @@ class file_spectrum:
 class cbc_spectrum:
   def __init__(self):
     cbcspec = np.loadtxt('cbc_spectrum.txt')
-    kcbc=cbcspec[:,0]*100
-    ecbc=cbcspec[:,1]*1e-6
+    kcbc=cbcspec[:,0]*100 # [1/m]
+    ecbc=cbcspec[:,1]*1e-6 # [m3/s/s]
     self.especf = interpolate.interp1d(kcbc, ecbc,'cubic')
     self.kmin = kcbc[0]
     self.kmax = kcbc[len(kcbc) - 1]
