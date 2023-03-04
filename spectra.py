@@ -29,6 +29,7 @@ class cbc_spectrum:
 
     self.especf = interpolate.interp1d(kcbc, ecbc,'cubic')
     self.kmin = kcbc[0]
+    self.kmin_paper = kcbc[1] # minimum wavenumber comes from table 3 of Comte-Bellot and Corrsin's 1971 paper, corresponds to 15 1/m
     self.kmax = kcbc[len(kcbc) - 1]
   def evaluate(self,k):
     return self.especf(k)
@@ -53,6 +54,7 @@ class ml_spectrum:
 
     self.especf = interpolate.interp1d(kcbc, ecbc,'cubic')
     self.kmin = kcbc[0]
+    self.kmin_paper = kcbc[1] # minimum wavenumber comes from table 3 of Comte-Bellot and Corrsin's 1971 paper
     self.kmax = kcbc[len(kcbc) - 1]
   def evaluate(self,k):
     return self.especf(k)

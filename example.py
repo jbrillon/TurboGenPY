@@ -76,13 +76,25 @@ nz = 1*number_of_unique_points_per_direction
 # 	ny = N[1]
 # 	nz = N[2]
 
+# specify which spectrum you want to use. Options are: cbc_spec, vkp_spec, and power_spec
+# inputspec = 'cbc'
+inputspec = 'ml'
+# if args.spectrum:
+# 	inputspec = args.spectrum
+
 # Default values for domain size in the x, y, and z directions. This value is typically
 # based on the largest length scale that your data has. For the cbc data,
 # the largest length scale corresponds to a wave number of 15, hence, the
 # domain size is L = 2pi/15.
-lx = 9 * 2.0 * pi / 100.0 # [m]
-ly = 9 * 2.0 * pi / 100.0 # [m]
-lz = 9 * 2.0 * pi / 100.0 # [m]
+if(inputspec == 'cbc'):
+	lx = 9 * 2.0 * pi / 100.0 # [m]
+	ly = 9 * 2.0 * pi / 100.0 # [m]
+	lz = 9 * 2.0 * pi / 100.0 # [m]
+elif(inputspec == 'ml'):
+	lx = 2.0 * pi
+	ly = 2.0 * pi
+	lz = 2.0 * pi
+
 # parse domain length, lx, ly, and lz
 L = args.length
 if L:
@@ -117,11 +129,6 @@ if args.multiprocessor:
 elif args.cuda:
     use_cuda = True
 
-# specify which spectrum you want to use. Options are: cbc_spec, vkp_spec, and power_spec
-inputspec = 'cbc'
-if args.spectrum:
-	inputspec = args.spectrum
-
 # specify the spectrum name to append to all output filenames
 fileappend = inputspec + '_' + str(nx) + '.' + str(ny) + '.' + str(nz) + '_' + str(nmodes) + '_modes'
 
@@ -151,15 +158,16 @@ computeMean = False
 # check the divergence of the generated velocity field
 checkdivergence = False
 
+# smallest wavenumber that can be represented by this grid
+wn1_grid = min(2.0*pi/lx, min(2.0*pi/ly, 2.0*pi/lz))
 # enter the smallest wavenumber represented by this spectrum
-if(inputspec=='cbc_spectrum'):
-	wn1 = 15  # determined here from cbc spectrum properties (suggested in TurboGenPY paper)
-	# NOTE: wn1 should be 15 [1/m] since the data is read in using metre units
-	# this 15 [1/m] minimum wavenumber comes from table 3 of comte's original (CBC) paper
-	# should look at the actual spectra file when choosing this
-	# wn1 = getattr(spectra, inputspec)().kmin[1] # this should be equivalent to 15 -- replace it -- do this for ML spectra too
+if(inputspec=='cbc_spectrum' or inputspec=='ml_spectrum'):
+	# NOTE: this 15 [1/m] minimum wavenumber comes from table 3 of comte's original (CBC) paper
+	# determined here from cbc spectrum properties (suggested in TurboGenPY paper)
+	wn1 = getattr(spectra, inputspec)().kmin_paper
 else:
-	wn1 = min(2.0*pi/lx, min(2.0*pi/ly, 2.0*pi/lz))
+	# default to grid wavenumber
+	wn1 = 1.0*wn1_grid
 
 # summarize user input
 print('-----------------------------------')
@@ -168,10 +176,13 @@ print('Domain size:', lx, ly, lz)
 print('Grid resolution:', nx, ny, nz)
 print('Fourier accuracy (modes):', nmodes)
 print('Smallest wavenumber represented by this spectrum: %.3f' % wn1)
+print('Smallest wavenumber represented by this grid: %.3f' % wn1_grid)
 print('Using cuda:', use_cuda)
 print('Using CPU threads:', use_threads)
 if use_threads:
 	print('\t patch layout:', patches)
+
+exit()
 # ------------------------------------------------------------------------------
 # END USER INPUT
 # ------------------------------------------------------------------------------
