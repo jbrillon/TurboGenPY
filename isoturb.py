@@ -37,7 +37,8 @@ from numpy import sin, cos, sqrt, ones, zeros, pi, arange
 def generate_isotropic_turbulence(lx, ly, lz, nx, ny, nz, nmodes, wn1, especf, 
   write_fem_grid_files=False,
   number_of_elements_per_direction=4,
-  poly_degree=5):
+  poly_degree=5,
+  velocity_field_filename="velocity_equidistant_nodes.fld"):
     """
     Given an energy spectrum, this function computes a discrete, staggered, three
     dimensional velocity field in a box whose energy spectrum corresponds to the input energy
@@ -162,7 +163,7 @@ def generate_isotropic_turbulence(lx, ly, lz, nx, ny, nz, nmodes, wn1, especf,
       # IDEA: I could compute the velocity field directly at the GLL nodes instead of having to convert it after
 
       number_of_points_per_direction = number_of_elements_per_direction*(poly_degree+1)
-      file = open("velocity_flow_field_turbogenpy.txt","w") # for testing
+      file = open(velocity_field_filename,"w") # for testing
       # - write total DOFs
       wstr = "%i\n" % (number_of_points_per_direction*number_of_points_per_direction*number_of_points_per_direction)
       file.write(wstr)
