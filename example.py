@@ -48,7 +48,7 @@ parser.add_argument('-m' , '--modes' , help='Number of modes', required=False,ty
 parser.add_argument('-gpu', '--cuda', help='Use a GPU if availalbe', required = False, action='store_true')
 parser.add_argument('-mp' , '--multiprocessor',help='Use the multiprocessing package', required = False,nargs='+', type=int)
 parser.add_argument('-o'  , '--output', help='Write data to disk', required = False,action='store_true')
-parser.add_argument('-spec', '--spectrum', help='Select spectrum. Defaults to cbc. Other options include: vkp, kcm, and pq.', required = False, type=str)
+parser.add_argument('-spec', '--spectrum', help='Select spectrum. Defaults to cbc. Other options include: ml, vkp, kcm, and pq.', required = False, type=str)
 args = parser.parse_args()
 
 # finite-element parameters
@@ -126,8 +126,8 @@ if args.spectrum:
 fileappend = inputspec + '_' + str(nx) + '.' + str(ny) + '.' + str(nz) + '_' + str(nmodes) + '_modes'
 
 print('input spec', inputspec)
-if inputspec != 'cbc' and inputspec != 'vkp' and inputspec != 'kcm' and inputspec != 'pq':
-	print('Error: ', inputspec, ' is not a supported spectrum. Supported spectra are: cbc, vkp, kcm, and pq. Please revise your input.')
+if inputspec != 'cbc' and inputspec != 'ml' and inputspec != 'vkp' and inputspec != 'kcm' and inputspec != 'pq':
+	print('Error: ', inputspec, ' is not a supported spectrum. Supported spectra are: cbc, ml, vkp, kcm, and pq. Please revise your input.')
 	exit()
 inputspec += '_spectrum'
 # now given a string name of the spectrum, find the corresponding function with the same name. use locals() because spectrum functions are defined in this module.
@@ -157,9 +157,9 @@ if(inputspec=='cbc_spectrum'):
 	# NOTE: wn1 should be 15 [1/m] since the data is read in using metre units
 	# this 15 [1/m] minimum wavenumber comes from table 3 of comte's original (CBC) paper
 	# should look at the actual spectra file when choosing this
+	# wn1 = getattr(spectra, inputspec)().kmin[1] # this should be equivalent to 15 -- replace it -- do this for ML spectra too
 else:
 	wn1 = min(2.0*pi/lx, min(2.0*pi/ly, 2.0*pi/lz))
-
 
 # summarize user input
 print('-----------------------------------')
@@ -167,6 +167,7 @@ print('SUMMARY OF USER INPUT:')
 print('Domain size:', lx, ly, lz)
 print('Grid resolution:', nx, ny, nz)
 print('Fourier accuracy (modes):', nmodes)
+print('Smallest wavenumber represented by this spectrum: %.3f' % wn1)
 print('Using cuda:', use_cuda)
 print('Using CPU threads:', use_threads)
 if use_threads:

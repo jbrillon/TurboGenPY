@@ -26,6 +26,31 @@ class cbc_spectrum:
     cbcspec = np.loadtxt('cbc_spectrum.txt')
     kcbc=cbcspec[:,0]*100 # [1/m]
     ecbc=cbcspec[:,1]*1e-6 # [m3/s/s]
+
+    self.especf = interpolate.interp1d(kcbc, ecbc,'cubic')
+    self.kmin = kcbc[0]
+    self.kmax = kcbc[len(kcbc) - 1]
+  def evaluate(self,k):
+    return self.especf(k)
+
+class ml_spectrum:
+  def __init__(self):
+    ''' 
+      Implements the Misra and Lund (1996) spectrum,
+      a nondimensionalized CBC spectrum. 
+      Reference: https://ntrs.nasa.gov/citations/19970014674
+    '''
+    cbcspec = np.loadtxt('cbc_spectrum.txt')
+    # Misra and Lund non-dimensionalization:
+    M = 5.08 # [cm] (mesh size from experiment)
+    u_rms = 22.2 # [cm/s] (rms velocity from experiment)
+    L_ref = 11.0*M/(2.0*np.pi) # cm
+    U_ref = np.sqrt(3.0/2.0)*u_rms # cm/s
+    energy_ref = U_ref*U_ref*L_ref # cm3/s2
+    # -- nondimensionalize experiment values
+    kcbc=cbcspec[:,0]*L_ref
+    ecbc=cbcspec[:,1]/energy_ref
+
     self.especf = interpolate.interp1d(kcbc, ecbc,'cubic')
     self.kmin = kcbc[0]
     self.kmax = kcbc[len(kcbc) - 1]
