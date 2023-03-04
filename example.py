@@ -48,7 +48,7 @@ parser.add_argument('-m' , '--modes' , help='Number of modes', required=False,ty
 parser.add_argument('-gpu', '--cuda', help='Use a GPU if availalbe', required = False, action='store_true')
 parser.add_argument('-mp' , '--multiprocessor',help='Use the multiprocessing package', required = False,nargs='+', type=int)
 parser.add_argument('-o'  , '--output', help='Write data to disk', required = False,action='store_true')
-parser.add_argument('-spec', '--spectrum', help='Select spectrum. Defaults to cbc. Other options include: vkp, kcm, and pq.', required = False, type=str)
+parser.add_argument('-spec', '--spectrum', help='Select spectrum. Defaults to cbc. Other options include: ml, vkp, kcm, and pq.', required = False, type=str)
 args = parser.parse_args()
 
 # parse grid resolution (nx, ny, nz). defaults to 32^3
@@ -116,8 +116,8 @@ if args.spectrum:
 fileappend = inputspec + '_' + str(nx) + '.' + str(ny) + '.' + str(nz) + '_' + str(nmodes) + '_modes'
 
 print('input spec', inputspec)
-if inputspec != 'cbc' and inputspec != 'vkp' and inputspec != 'kcm' and inputspec != 'pq':
-	print('Error: ', inputspec, ' is not a supported spectrum. Supported spectra are: cbc, vkp, kcm, and pq. Please revise your input.')
+if inputspec != 'cbc' and inputspec != 'ml' and inputspec != 'vkp' and inputspec != 'kcm' and inputspec != 'pq':
+	print('Error: ', inputspec, ' is not a supported spectrum. Supported spectra are: cbc, ml, vkp, kcm, and pq. Please revise your input.')
 	exit()
 inputspec += '_spectrum'
 # now given a string name of the spectrum, find the corresponding function with the same name. use locals() because spectrum functions are defined in this module.
@@ -142,7 +142,13 @@ computeMean = False
 checkdivergence = False
 
 # enter the smallest wavenumber represented by this spectrum
-wn1 = min(2.0*pi/lx, min(2.0*pi/ly, 2.0*pi/lz))
+# wn1 = min(2.0*pi/lx, min(2.0*pi/ly, 2.0*pi/lz))
+# wn1 = whichspec.kmin
+# wn1 = 11.0
+if inputspec == 'cbc' or inputspec == 'ml' or inputspec == 'vkp' or inputspec == 'pq':
+	wn1 = getattr(spectra, inputspec+'_spectrum')().kmin
+else:
+	wn1 = min(2.0*pi/lx, min(2.0*pi/ly, 2.0*pi/lz))
 # wn1 = 15  # determined here from cbc spectrum properties
 
 # summarize user input
@@ -151,6 +157,7 @@ print('SUMMARY OF USER INPUT:')
 print('Domain size:', lx, ly, lz)
 print('Grid resolution:', nx, ny, nz)
 print('Fourier accuracy (modes):', nmodes)
+print('Smallest wavenumber represented by this spectrum: %.3f' % wn1)
 print('Using cuda:', use_cuda)
 print('Using CPU threads:', use_threads)
 if use_threads:
