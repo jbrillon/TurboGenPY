@@ -59,7 +59,7 @@ def generate_isotropic_turbulence_high_order_fem(
         lz = 2.0 * pi
 
     # number of modes
-    nmodes = 1.0*number_of_modes
+    nmodes = 1*number_of_modes
 
     # specify the spectrum name to append to all output filenames
     fileappend = inputspec + '_' + str(nx) + '.' + str(ny) + '.' + str(nz) + '_' + str(nmodes) + '_modes'

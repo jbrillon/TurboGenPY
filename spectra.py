@@ -8,6 +8,7 @@ Created on Tuesday May  29 13:08:01 2018
 from scipy import interpolate
 import numpy as np
 from numpy import pi
+import os
 
 class file_spectrum:
   def __init__(self,specfname):
@@ -23,7 +24,8 @@ class file_spectrum:
 
 class cbc_spectrum:
   def __init__(self):
-    cbcspec = np.loadtxt('cbc_spectrum.txt')
+    path = os.path.split(os.path.realpath(__file__))[0]
+    cbcspec = np.loadtxt(path + "/" + 'cbc_spectrum.txt')
     kcbc=cbcspec[:,0]*100 # [1/m]
     ecbc=cbcspec[:,1]*1e-6 # [m3/s/s]
 
@@ -41,7 +43,8 @@ class ml_spectrum:
       a nondimensionalized CBC spectrum. 
       Reference: https://ntrs.nasa.gov/citations/19970014674
     '''
-    cbcspec = np.loadtxt('cbc_spectrum.txt')
+    path = os.path.split(os.path.realpath(__file__))[0]
+    cbcspec = np.loadtxt(path + "/" + 'cbc_spectrum.txt')
     # Misra and Lund non-dimensionalization:
     M = 5.08 # [cm] (mesh size from experiment)
     u_rms = 22.2 # [cm/s] (rms velocity from experiment)

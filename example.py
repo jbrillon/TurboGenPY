@@ -182,7 +182,6 @@ print('Using CPU threads:', use_threads)
 if use_threads:
 	print('\t patch layout:', patches)
 
-exit()
 # ------------------------------------------------------------------------------
 # END USER INPUT
 # ------------------------------------------------------------------------------
@@ -210,7 +209,7 @@ else:
 t1 = time.time()
 elapsed_time = t1 - t0
 print('it took me ', elapsed_time, 's to generate the isotropic turbulence.')
-
+exit()
 if enableIO:
 	if use_threads:
 		isoio.writefileparallel(u, v, w, dx, dy, dz, fileformat)
